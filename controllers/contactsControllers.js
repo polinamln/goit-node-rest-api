@@ -98,5 +98,3 @@ export const updateContact = async (req, res, next) => {
     next(HttpError(404));
   }
 };
-
-//Якщо контакт за id не знайдено, повертає json формату {"message": "Not found"} зі статусом 404
