@@ -96,3 +96,17 @@ export const updateContact = async (req, res, next) => {
     next(HttpError(404));
   }
 };
+
+export const updateStatusContact = async (req, res, next) => {
+  const { contactId } = req.params;
+  const data = {
+    favorite: req.body.favorite,
+  };
+
+  try {
+    const updatedContact = await Contact.findByIdAndUpdate(contactId, data);
+    return res.status(200).send(updatedContact);
+  } catch (e) {
+    next(HttpError(404));
+  }
+};
