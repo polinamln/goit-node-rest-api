@@ -105,6 +105,11 @@ export const updateStatusContact = async (req, res, next) => {
 
   try {
     const updatedContact = await Contact.findByIdAndUpdate(contactId, data);
+
+    if (!updatedContact) {
+      throw new HttpError(404);
+    }
+
     return res.status(200).send(updatedContact);
   } catch (e) {
     next(HttpError(404));
