@@ -1,14 +1,15 @@
+import Contact from "../models/contacsSchema.js";
+
 import HttpError from "../helpers/HttpError.js";
 import {
   createContactSchema,
   updateContactSchema,
 } from "../schemas/contactsSchemas.js";
-import contactsService from "../services/contactsServices.js";
 
 export const getAllContacts = async (req, res, next) => {
   try {
-    const contacts = await contactsService.listContacts();
-    res.status(200).json(contacts);
+    const contacts = await Contact.find();
+    res.status(200).send(contacts);
   } catch (e) {
     next(e);
   }
@@ -17,11 +18,11 @@ export const getAllContacts = async (req, res, next) => {
 export const getOneContact = async (req, res, next) => {
   const { id } = req.params;
   try {
-    const contact = await contactsService.getContactById(id);
+    const contact = await Contact.findById(id);
     if (!contact) {
       throw new HttpError(404);
     }
-    res.status(200).json(contact);
+    res.status(200).send(contact);
   } catch (e) {
     next(HttpError(404));
   }
@@ -31,11 +32,11 @@ export const deleteContact = async (req, res, next) => {
   const { id } = req.params;
 
   try {
-    const deletedContact = await contactsService.removeContact(id);
+    const deletedContact = await Contact.findByIdAndDelete(id);
     if (!deletedContact) {
       throw new HttpError(404);
     }
-    res.status(200).json(deletedContact);
+    res.status(200).send(deletedContact);
   } catch (e) {
     next(HttpError(404));
   }
@@ -55,9 +56,9 @@ export const createContact = async (req, res, next) => {
   }
 
   try {
-    const newContact = await contactsService.addContact(userData.value);
+    const newContact = await Contact.create(userData.value);
 
-    return res.status(201).json(newContact);
+    return res.status(201).send(newContact);
   } catch (e) {
     next(e);
   }
@@ -85,15 +86,31 @@ export const updateContact = async (req, res, next) => {
   }
 
   try {
-    const updatedContact = await contactsService.updateContact(
-      id,
-      userData.value
-    );
+    const updatedContact = await Contact.findByIdAndUpdate(id, userData.value);
 
     if (!updatedContact) {
       throw new HttpError(404);
     }
-    return res.status(200).json(updatedContact);
+    return res.status(200).send(updatedContact);
+  } catch (e) {
+    next(HttpError(404));
+  }
+};
+
+export const updateStatusContact = async (req, res, next) => {
+  const { contactId } = req.params;
+  const data = {
+    favorite: req.body.favorite,
+  };
+
+  try {
+    const updatedContact = await Contact.findByIdAndUpdate(contactId, data);
+
+    if (!updatedContact) {
+      throw new HttpError(404);
+    }
+
+    return res.status(200).send(updatedContact);
   } catch (e) {
     next(HttpError(404));
   }
