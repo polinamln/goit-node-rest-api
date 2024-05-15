@@ -31,6 +31,7 @@ function auth(req, res, next) {
         id: user._id,
         email: user.email,
       };
+
       next();
     } catch (e) {
       next(HttpError(401));

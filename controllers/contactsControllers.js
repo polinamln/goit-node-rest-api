@@ -7,7 +7,6 @@ import {
 } from "../schemas/contactsSchemas.js";
 
 export const getAllContacts = async (req, res, next) => {
-  const { id } = req.params;
   try {
     const contacts = await Contact.find({ owner: req.user.id });
 
@@ -39,6 +38,12 @@ export const deleteContact = async (req, res, next) => {
   const { id } = req.params;
 
   try {
+    const contact = await Contact.findById(id);
+
+    if (contact.owner.toString() !== req.user.id) {
+      return res.status(404).send({ message: "Book not found" });
+    }
+
     const deletedContact = await Contact.findByIdAndDelete(id);
     if (!deletedContact) {
       throw new HttpError(404);
@@ -80,6 +85,11 @@ export const updateContact = async (req, res, next) => {
   };
 
   const { id } = req.params;
+  const contact = await Contact.findById(id);
+
+  if (contact.owner.toString() !== req.user.id) {
+    return res.status(404).send({ message: "Book not found" });
+  }
 
   if (!data.name && !data.email && !data.phone) {
     return res

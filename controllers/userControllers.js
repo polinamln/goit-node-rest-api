@@ -82,3 +82,30 @@ export const userLogin = async (req, res, next) => {
     next(HttpError(401));
   }
 };
+
+export const userLogout = async (req, res, next) => {
+  try {
+    await User.findByIdAndUpdate(req.user.id, { token: null });
+
+    res.status(204).end();
+  } catch (e) {
+    next(HttpError(401));
+  }
+};
+
+export const userCurrent = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    res.status(200).json({
+      email: user.email,
+      subscription: user.subscription,
+    });
+  } catch (e) {
+    next(HttpError(401));
+  }
+};
