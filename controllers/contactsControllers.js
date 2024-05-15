@@ -7,9 +7,10 @@ import {
 } from "../schemas/contactsSchemas.js";
 
 export const getAllContacts = async (req, res, next) => {
-  console.log({ user: req.user });
+  const { id } = req.params;
   try {
-    const contacts = await Contact.find();
+    const contacts = await Contact.find({ owner: req.user.id });
+
     res.status(200).send(contacts);
   } catch (e) {
     next(e);
@@ -20,6 +21,11 @@ export const getOneContact = async (req, res, next) => {
   const { id } = req.params;
   try {
     const contact = await Contact.findById(id);
+
+    if (contact.owner.toString() !== req.user.id) {
+      return res.status(404).send({ message: "Book not found" });
+    }
+
     if (!contact) {
       throw new HttpError(404);
     }
