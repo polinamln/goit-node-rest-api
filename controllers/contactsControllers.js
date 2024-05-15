@@ -7,6 +7,7 @@ import {
 } from "../schemas/contactsSchemas.js";
 
 export const getAllContacts = async (req, res, next) => {
+  console.log({ user: req.user });
   try {
     const contacts = await Contact.find();
     res.status(200).send(contacts);
@@ -47,6 +48,7 @@ export const createContact = async (req, res, next) => {
     name: req.body.name,
     email: req.body.email,
     phone: req.body.phone,
+    owner: req.user.id,
   };
 
   const userData = createContactSchema.validate(data);
