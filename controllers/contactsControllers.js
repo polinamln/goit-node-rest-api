@@ -40,8 +40,10 @@ export const getOneContact = async (req, res, next) => {
   try {
     const contact = await Contact.findById(id);
 
-    if (contact.owner.toString() !== req.user.id) {
-      return res.status(404).send({ message: "Book not found" });
+    const currentUser = req.user.id;
+
+    if (contact.owner.toString() !== currentUser.toString()) {
+      return res.status(404).send({ message: "Contact not found" });
     }
 
     if (!contact) {
@@ -59,8 +61,10 @@ export const deleteContact = async (req, res, next) => {
   try {
     const contact = await Contact.findById(id);
 
-    if (contact.owner.toString() !== req.user.id) {
-      return res.status(404).send({ message: "Book not found" });
+    const currentUser = req.user.id;
+
+    if (contact.owner.toString() !== currentUser.toString()) {
+      return res.status(404).send({ message: "Contact not found" });
     }
 
     const deletedContact = await Contact.findByIdAndDelete(id);
@@ -106,8 +110,10 @@ export const updateContact = async (req, res, next) => {
   const { id } = req.params;
   const contact = await Contact.findById(id);
 
-  if (contact.owner.toString() !== req.user.id) {
-    return res.status(404).send({ message: "Book not found" });
+  const currentUser = req.user.id;
+
+  if (contact.owner.toString() !== currentUser.toString()) {
+    return res.status(404).send({ message: "Contact not found" });
   }
 
   if (!data.name && !data.email && !data.phone) {
@@ -135,13 +141,32 @@ export const updateContact = async (req, res, next) => {
 };
 
 export const updateStatusContact = async (req, res, next) => {
-  const { contactId } = req.params;
+  const { id } = req.params;
   const data = {
     favorite: req.body.favorite,
   };
 
   try {
-    const updatedContact = await Contact.findByIdAndUpdate(contactId, data);
+    const contact = await Contact.findById(id);
+
+    console.log(contact);
+
+    const currentUser = req.user.id;
+
+    if (contact.owner.toString() !== currentUser.toString()) {
+      return res.status(404).send({ message: "Contact not found" });
+    }
+
+    const validatedData = updateContactSchema.validate(data);
+
+    if (validatedData.error) {
+      return res.status(400).json({ message: validatedData.error.message });
+    }
+
+    const updatedContact = await Contact.findByIdAndUpdate(
+      id,
+      validatedData.value
+    );
 
     if (!updatedContact) {
       throw new HttpError(404);
