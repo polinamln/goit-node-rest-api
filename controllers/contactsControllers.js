@@ -7,8 +7,27 @@ import {
 } from "../schemas/contactsSchemas.js";
 
 export const getAllContacts = async (req, res, next) => {
+  const { page = 1, limit = 20 } = req.query;
+
+  const pageNum = parseInt(page);
+  const pagesLimit = parseInt(limit);
+
+  const startedIndex = (pageNum - 1) * pagesLimit;
+
   try {
-    const contacts = await Contact.find({ owner: req.user.id });
+    if (req.query.favorite) {
+      const contacts = await Contact.find({
+        owner: req.user.id,
+        favorite: true,
+      });
+
+      res.status(200).send(contacts);
+      return;
+    }
+
+    const contacts = await Contact.find({ owner: req.user.id })
+      .skip(startedIndex)
+      .limit(pagesLimit);
 
     res.status(200).send(contacts);
   } catch (e) {

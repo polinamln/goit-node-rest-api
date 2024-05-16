@@ -109,3 +109,22 @@ export const userCurrent = async (req, res, next) => {
     next(HttpError(401));
   }
 };
+
+export const userSubscription = async (req, res, next) => {
+  const subscriptions = ["starter", "pro", "business"];
+  const { subscription } = req.body;
+  try {
+    if (!subscriptions.includes(subscription)) {
+      return res.status(400).json({ message: "Invalid subscription" });
+    }
+
+    const user = await User.findByIdAndUpdate(req.user.id, { subscription });
+
+    res.status(200).json({
+      email: user.email,
+      subscription: user.subscription,
+    });
+  } catch (e) {
+    next(HttpError(401));
+  }
+};

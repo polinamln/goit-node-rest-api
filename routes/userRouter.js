@@ -4,6 +4,7 @@ import {
   userRegistratoin,
   userLogout,
   userCurrent,
+  userSubscription,
 } from "../controllers/userControllers.js";
 import authMiddleware from "../middleware/auth.js";
 
@@ -16,5 +17,7 @@ userRouter.post("/login", userLogin);
 userRouter.post("/logout", authMiddleware, userLogout);
 
 userRouter.get("/current", authMiddleware, userCurrent);
+
+userRouter.patch("/", authMiddleware, userSubscription);
 
 export default userRouter;
