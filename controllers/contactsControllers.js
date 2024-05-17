@@ -7,8 +7,28 @@ import {
 } from "../schemas/contactsSchemas.js";
 
 export const getAllContacts = async (req, res, next) => {
+  const { page = 1, limit = 20 } = req.query;
+
+  const pageNum = parseInt(page);
+  const pagesLimit = parseInt(limit);
+
+  const startedIndex = (pageNum - 1) * pagesLimit;
+
   try {
-    const contacts = await Contact.find();
+    if (req.query.favorite) {
+      const contacts = await Contact.find({
+        owner: req.user.id,
+        favorite: true,
+      });
+
+      res.status(200).send(contacts);
+      return;
+    }
+
+    const contacts = await Contact.find({ owner: req.user.id })
+      .skip(startedIndex)
+      .limit(pagesLimit);
+
     res.status(200).send(contacts);
   } catch (e) {
     next(e);
@@ -19,6 +39,16 @@ export const getOneContact = async (req, res, next) => {
   const { id } = req.params;
   try {
     const contact = await Contact.findById(id);
+    if (!contact) {
+      return res.status(404).send({ message: "Contact not found" });
+    }
+
+    const currentUser = req.user.id;
+
+    if (contact.owner.toString() !== currentUser.toString()) {
+      return res.status(404).send({ message: "Contact not found" });
+    }
+
     if (!contact) {
       throw new HttpError(404);
     }
@@ -32,6 +62,17 @@ export const deleteContact = async (req, res, next) => {
   const { id } = req.params;
 
   try {
+    const contact = await Contact.findById(id);
+    if (!contact) {
+      return res.status(404).send({ message: "Contact not found" });
+    }
+
+    const currentUser = req.user.id;
+
+    if (contact.owner.toString() !== currentUser.toString()) {
+      return res.status(404).send({ message: "Contact not found" });
+    }
+
     const deletedContact = await Contact.findByIdAndDelete(id);
     if (!deletedContact) {
       throw new HttpError(404);
@@ -47,6 +88,7 @@ export const createContact = async (req, res, next) => {
     name: req.body.name,
     email: req.body.email,
     phone: req.body.phone,
+    owner: req.user.id,
   };
 
   const userData = createContactSchema.validate(data);
@@ -73,20 +115,34 @@ export const updateContact = async (req, res, next) => {
 
   const { id } = req.params;
 
-  if (!data.name && !data.email && !data.phone) {
-    return res
-      .status(400)
-      .json({ message: "Body must have at least one field" });
-  }
-
-  const userData = updateContactSchema.validate(data);
-
-  if (userData.error) {
-    return res.status(400).json({ message: userData.error.message });
-  }
-
   try {
-    const updatedContact = await Contact.findByIdAndUpdate(id, userData.value);
+    const contact = await Contact.findById(id);
+
+    if (!contact) {
+      return res.status(404).send({ message: "Contact not found" });
+    }
+
+    const currentUser = req.user.id;
+
+    if (contact.owner.toString() !== currentUser.toString()) {
+      return res.status(404).send({ message: "Contact not found" });
+    }
+
+    if (!data.name && !data.email && !data.phone) {
+      return res
+        .status(400)
+        .json({ message: "Body must have at least one field" });
+    }
+
+    const userData = updateContactSchema.validate(data);
+
+    if (userData.error) {
+      return res.status(400).json({ message: userData.error.message });
+    }
+
+    const updatedContact = await Contact.findByIdAndUpdate(id, userData.value, {
+      new: true,
+    });
 
     if (!updatedContact) {
       throw new HttpError(404);
@@ -98,13 +154,37 @@ export const updateContact = async (req, res, next) => {
 };
 
 export const updateStatusContact = async (req, res, next) => {
-  const { contactId } = req.params;
+  const { id } = req.params;
   const data = {
     favorite: req.body.favorite,
   };
 
   try {
-    const updatedContact = await Contact.findByIdAndUpdate(contactId, data);
+    const contact = await Contact.findById(id);
+
+    if (!contact) {
+      return res.status(404).send({ message: "Contact not found" });
+    }
+
+    const currentUser = req.user.id;
+
+    if (contact.owner.toString() !== currentUser.toString()) {
+      return res.status(404).send({ message: "Contact not found" });
+    }
+
+    const validatedData = updateContactSchema.validate(data);
+
+    if (validatedData.error) {
+      return res.status(400).json({ message: validatedData.error.message });
+    }
+
+    const updatedContact = await Contact.findByIdAndUpdate(
+      id,
+      validatedData.value,
+      {
+        new: true,
+      }
+    );
 
     if (!updatedContact) {
       throw new HttpError(404);
