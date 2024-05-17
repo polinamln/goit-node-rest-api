@@ -114,31 +114,32 @@ export const updateContact = async (req, res, next) => {
   };
 
   const { id } = req.params;
-  const contact = await Contact.findById(id);
-
-  if (!contact) {
-    return res.status(404).send({ message: "Contact not found" });
-  }
-
-  const currentUser = req.user.id;
-
-  if (contact.owner.toString() !== currentUser.toString()) {
-    return res.status(404).send({ message: "Contact not found" });
-  }
-
-  if (!data.name && !data.email && !data.phone) {
-    return res
-      .status(400)
-      .json({ message: "Body must have at least one field" });
-  }
-
-  const userData = updateContactSchema.validate(data);
-
-  if (userData.error) {
-    return res.status(400).json({ message: userData.error.message });
-  }
 
   try {
+    const contact = await Contact.findById(id);
+
+    if (!contact) {
+      return res.status(404).send({ message: "Contact not found" });
+    }
+
+    const currentUser = req.user.id;
+
+    if (contact.owner.toString() !== currentUser.toString()) {
+      return res.status(404).send({ message: "Contact not found" });
+    }
+
+    if (!data.name && !data.email && !data.phone) {
+      return res
+        .status(400)
+        .json({ message: "Body must have at least one field" });
+    }
+
+    const userData = updateContactSchema.validate(data);
+
+    if (userData.error) {
+      return res.status(400).json({ message: userData.error.message });
+    }
+
     const updatedContact = await Contact.findByIdAndUpdate(id, userData.value);
 
     if (!updatedContact) {
