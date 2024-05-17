@@ -140,7 +140,9 @@ export const updateContact = async (req, res, next) => {
       return res.status(400).json({ message: userData.error.message });
     }
 
-    const updatedContact = await Contact.findByIdAndUpdate(id, userData.value);
+    const updatedContact = await Contact.findByIdAndUpdate(id, userData.value, {
+      new: true,
+    });
 
     if (!updatedContact) {
       throw new HttpError(404);
@@ -178,7 +180,10 @@ export const updateStatusContact = async (req, res, next) => {
 
     const updatedContact = await Contact.findByIdAndUpdate(
       id,
-      validatedData.value
+      validatedData.value,
+      {
+        new: true,
+      }
     );
 
     if (!updatedContact) {
