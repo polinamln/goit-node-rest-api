@@ -39,6 +39,9 @@ export const getOneContact = async (req, res, next) => {
   const { id } = req.params;
   try {
     const contact = await Contact.findById(id);
+    if (!contact) {
+      return res.status(404).send({ message: "Contact not found" });
+    }
 
     const currentUser = req.user.id;
 
@@ -60,6 +63,9 @@ export const deleteContact = async (req, res, next) => {
 
   try {
     const contact = await Contact.findById(id);
+    if (!contact) {
+      return res.status(404).send({ message: "Contact not found" });
+    }
 
     const currentUser = req.user.id;
 
@@ -110,6 +116,10 @@ export const updateContact = async (req, res, next) => {
   const { id } = req.params;
   const contact = await Contact.findById(id);
 
+  if (!contact) {
+    return res.status(404).send({ message: "Contact not found" });
+  }
+
   const currentUser = req.user.id;
 
   if (contact.owner.toString() !== currentUser.toString()) {
@@ -149,7 +159,9 @@ export const updateStatusContact = async (req, res, next) => {
   try {
     const contact = await Contact.findById(id);
 
-    console.log(contact);
+    if (!contact) {
+      return res.status(404).send({ message: "Contact not found" });
+    }
 
     const currentUser = req.user.id;
 
