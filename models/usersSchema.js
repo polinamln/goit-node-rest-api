@@ -7,6 +7,7 @@ const usersSchema = new Schema(
       type: String,
       required: [true, "Password is required"],
     },
+    avatarURL: String,
     email: {
       type: String,
       required: [true, "Email is required"],

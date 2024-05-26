@@ -1,10 +1,14 @@
 import HttpError from "../helpers/HttpError.js";
 import User from "../models/usersSchema.js";
-import { createUserSchema } from "../schemas/userScemas.js";
+import { createUserSchema } from "../schemas/userSchemas.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
+import * as fs from "node:fs/promises";
+import path from "node:path";
+import gravatar from "gravatar";
+import Jimp from "jimp";
 
-export const userRegistratoin = async (req, res, next) => {
+export const userRegistration = async (req, res, next) => {
   const { email, password } = req.body;
 
   try {
@@ -14,10 +18,12 @@ export const userRegistratoin = async (req, res, next) => {
     if (user !== null) {
       res.status(409).json({ message: "Email in use" });
     }
+    const avatarURL = gravatar.url(email, { s: "250", r: "pg" });
 
     const data = {
       email: req.body.email,
       password: passwordHash,
+      avatarURL,
     };
 
     const userData = createUserSchema.validate(data);
@@ -32,6 +38,7 @@ export const userRegistratoin = async (req, res, next) => {
       user: {
         email: registerUser.email,
         subscription: registerUser.subscription,
+        avatarURL: registerUser.avatarURL,
       },
     });
   } catch (e) {
@@ -126,5 +133,52 @@ export const userSubscription = async (req, res, next) => {
     });
   } catch (e) {
     next(HttpError(401));
+  }
+};
+
+export const userAvatar = async (req, res, next) => {
+  try {
+    const { path: imgPath, filename } = req.file;
+
+    const avatar = await Jimp.read(imgPath);
+
+    await avatar.resize(250, 250).writeAsync(imgPath);
+
+    await fs.rename(imgPath, path.resolve("public/avatars", req.file.filename));
+
+    const avatarURL = `/avatars/${filename}`;
+
+    const user = await User.findByIdAndUpdate(
+      req.user.id,
+      { avatarURL: avatarURL },
+      { new: true }
+    );
+
+    if (user === null) {
+      return HttpError(401);
+    }
+
+    res.status(200).json({ avatarURL: avatarURL });
+  } catch (e) {
+    next(HttpError(400));
+  }
+};
+
+export const getAvatar = async (req, res, next) => {
+  try {
+    const user = await User.findById(req.user.id);
+
+    if (!user) {
+      return res.status(401).json({ message: "Unauthorized" });
+    }
+
+    if (user.avatarURL === null) {
+      return res.status(404).json({ message: "No avatar available." });
+    }
+
+    const avatarPath = path.resolve("public/avatars", user.avatarURL);
+    res.status(200).sendFile(avatarPath);
+  } catch (e) {
+    next(HttpError(400));
   }
 };
