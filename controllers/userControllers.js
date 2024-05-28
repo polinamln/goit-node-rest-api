@@ -1,12 +1,17 @@
 import HttpError from "../helpers/HttpError.js";
 import User from "../models/usersSchema.js";
-import { createUserSchema } from "../schemas/userSchemas.js";
+import {
+  createUserSchema,
+  resendVerificationEmailUserSchema,
+} from "../schemas/userSchemas.js";
 import bcrypt from "bcrypt";
 import jwt from "jsonwebtoken";
 import * as fs from "node:fs/promises";
 import path from "node:path";
 import gravatar from "gravatar";
 import Jimp from "jimp";
+import { userMail } from "../mail.js";
+import { nanoid } from "nanoid";
 
 export const userRegistration = async (req, res, next) => {
   const { email, password } = req.body;
@@ -19,11 +24,13 @@ export const userRegistration = async (req, res, next) => {
       res.status(409).json({ message: "Email in use" });
     }
     const avatarURL = gravatar.url(email, { s: "250", r: "pg" });
+    const verificationToken = nanoid();
 
     const data = {
       email: req.body.email,
       password: passwordHash,
       avatarURL,
+      verificationToken,
     };
 
     const userData = createUserSchema.validate(data);
@@ -33,6 +40,14 @@ export const userRegistration = async (req, res, next) => {
     }
 
     const registerUser = await User.create(userData.value);
+
+    userMail({
+      to: email,
+      from: "34593703a5-31551d@inbox.mailtrap.io",
+      subject: "Welcome to rest-api!",
+      html: `<h2>Hello!</h2> <br/><p>To verify your email please click on the</p> <a href="http://localhost:3000/users/verify/${verificationToken}">link</a>`,
+      text: `Hello! To verify your email please click on the http://localhost:3000/users/verify/${verificationToken}`,
+    });
 
     return res.status(201).json({
       user: {
@@ -68,6 +83,12 @@ export const userLogin = async (req, res, next) => {
 
     if (isMatch === false) {
       return res.status(400).json(userData.error.message);
+    }
+
+    if (user.verify === false) {
+      return res.status(404).json({
+        message: "User not found. Please verifycate your email!",
+      });
     }
 
     const token = jwt.sign(
@@ -178,6 +199,68 @@ export const getAvatar = async (req, res, next) => {
 
     const avatarPath = path.resolve("public/avatars", user.avatarURL);
     res.status(200).sendFile(avatarPath);
+  } catch (e) {
+    next(HttpError(400));
+  }
+};
+
+export const userVerification = async (req, res, next) => {
+  const { verificationToken } = req.params;
+
+  try {
+    const user = await User.findOne({ verificationToken: verificationToken });
+
+    if (user === null) {
+      return res.status(404).json({
+        message: "User not found",
+      });
+    }
+
+    const newUser = await User.findByIdAndUpdate(user.id, {
+      verificationToken: null,
+      verify: true,
+    });
+
+    res.status(200).json({ message: "Verification successful" });
+  } catch (e) {
+    next(HttpError(404));
+  }
+};
+
+export const resendVerificationEmail = async (req, res, next) => {
+  const { email } = req.body;
+
+  try {
+    const { error, value } = resendVerificationEmailUserSchema.validate({
+      email,
+    });
+    const user = await User.findOne({ email: value.email });
+
+    if (error) {
+      return res.status(400).send(error.message);
+    }
+
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    if (user.verify === true) {
+      return res
+        .status(400)
+        .json({ message: "Verification has already been passed" });
+    }
+
+    const verificationToken = user.verificationToken;
+
+    userMail({
+      to: value.email,
+      from: "34593703a5-31551d@inbox.mailtrap.io",
+      subject: "Welcome to rest-api!",
+      html: `<h2>Letter for re-verification.</h2> <br /> <p> To verify your email please click on the</p> <a href="http://localhost:3000/users/verify/${verificationToken}">link</a>`,
+      text: `Letter for re-verification. To verify your email please click on the http://localhost:3000/users/verify/${verificationToken}`,
+    });
+
+    return res.status(200).json({ message: "Verification email sent" });
   } catch (e) {
     next(HttpError(400));
   }

@@ -7,6 +7,8 @@ import {
   userSubscription,
   userAvatar,
   getAvatar,
+  userVerification,
+  resendVerificationEmail,
 } from "../controllers/userControllers.js";
 import authMiddleware from "../middleware/auth.js";
 import uploadMiddleware from "../middleware/upload.js";
@@ -31,5 +33,9 @@ userRouter.patch(
 );
 
 userRouter.get("/avatars/:fileName", authMiddleware, getAvatar);
+
+userRouter.get("/verify/:verificationToken", userVerification);
+
+userRouter.post("/verify", resendVerificationEmail);
 
 export default userRouter;
